@@ -1,8 +1,9 @@
-package com.urbanalerta.ferramentas;
+package com.urbanalerta.tools;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.io.StringReader;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -20,6 +21,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -57,13 +59,15 @@ public class TesteConexao {
         Properties env = new Properties();
         carregar(padroes, env, arquivoEnv);
 
+        String dbUrl = valor(padroes, env, "DB_URL");
         String url = valor(padroes, env, "spring.datasource.url");
         String usuario = valor(padroes, env, "spring.datasource.username");
         String senha = valor(padroes, env, "spring.datasource.password");
         String jwt = valor(padroes, env, "urbanalerta.seguranca.jwt-segredo");
         String adminSenha = valor(padroes, env, "urbanalerta.admin.senha");
 
-        conferirPerfil(env);
+        conferirDbUrl(dbUrl, url);
+        conferirPerfil(padroes, env);
         URI uri = conferirUrl(url);
         conferirUsuario(usuario, uri);
         conferirSenha(senha);
@@ -100,14 +104,29 @@ public class TesteConexao {
                 erro("Não achei application-banco.properties dentro do projeto (src/main/resources).");
             }
         } catch (IOException e) {
-            erro("Não consegui ler application-banco.properties: " + e.getMessage());
+            erro("Não consegui ler application-banco.properties (" + e.getClass().getSimpleName() + ").");
+        }
+        Path configExterna = Path.of("config", "application-banco.properties");
+        if (Files.isRegularFile(configExterna)) {
+            try (InputStream in = Files.newInputStream(configExterna)) {
+                padroes.load(in);
+                ok("Achei config/application-banco.properties (configuração externa do Spring).");
+            } catch (IOException e) {
+                erro("Não consegui ler config/application-banco.properties (" + e.getClass().getSimpleName() + ").");
+            }
         }
         if (Files.exists(arquivoEnv)) {
-            try (InputStream in = Files.newInputStream(arquivoEnv)) {
-                env.load(in);
-                ok("Achei o arquivo " + arquivoEnv + ".");
+            try {
+                String conteudo = Files.readString(arquivoEnv, StandardCharsets.UTF_8);
+                if (conteudo.startsWith("\uFEFF")) {
+                    conteudo = conteudo.substring(1);
+                }
+                try (StringReader reader = new StringReader(conteudo)) {
+                    env.load(reader);
+                }
+                ok("Achei o arquivo " + arquivoEnv + "; valores não serão exibidos.");
             } catch (IOException e) {
-                erro("Não consegui ler " + arquivoEnv + ": " + e.getMessage());
+                erro("Não consegui ler " + arquivoEnv + " (" + e.getClass().getSimpleName() + ").");
             }
         } else {
             aviso("Não achei o arquivo " + arquivoEnv + " na pasta atual. Vou usar só as variáveis de ambiente do sistema. "
@@ -115,17 +134,27 @@ public class TesteConexao {
         }
     }
 
-    /** Lê uma chave e resolve ${VARIAVEL:padrão}: variável de ambiente, depois o .env, depois o padrão. */
+    /** Resolve propriedades de sistema/ambiente antes dos arquivos de configuração. */
     private String valor(Properties padroes, Properties env, String chave) {
+        String direto = System.getProperty(chave);
+        if (direto == null) {
+            direto = System.getenv(nomeVariavelAmbiente(chave));
+        }
+        if (direto != null) {
+            return direto.trim();
+        }
         String bruto = padroes.getProperty(chave);
         if (bruto == null) {
-            return "";
+            return env.getProperty(chave, "").trim();
         }
         Matcher m = MARCADOR.matcher(bruto);
         StringBuilder resultado = new StringBuilder();
         while (m.find()) {
             String nome = m.group(1);
-            String substituto = System.getenv(nome);
+            String substituto = System.getProperty(nome);
+            if (substituto == null) {
+                substituto = System.getenv(nome);
+            }
             if (substituto == null) {
                 substituto = env.getProperty(nome);
             }
@@ -138,15 +167,29 @@ public class TesteConexao {
         return resultado.toString().trim();
     }
 
+    private static String nomeVariavelAmbiente(String propriedade) {
+        return propriedade.replace('.', '_').replace('-', '_').toUpperCase(Locale.ROOT);
+    }
+
     // ---------------------------------------------------------------- conferência dos valores
 
-    private void conferirPerfil(Properties env) {
-        String perfil = env.getProperty("spring.profiles.active", "");
-        if (perfil.equals("banco")) {
-            ok("O .env ativa o perfil banco.");
+    private void conferirDbUrl(String dbUrl, String url) {
+        if (!dbUrl.isBlank()) {
+            ok("DB_URL está carregada (valor omitido).");
+        } else if (!url.isBlank()) {
+            aviso("DB_URL não está definida; será usada a propriedade spring.datasource.url direta (valor omitido).");
         } else {
-            aviso("O .env não tem spring.profiles.active=banco. Sem isso o sistema sobe no H2 (a menos que você use "
-                    + "-Dspring.profiles.active=banco ou SPRING_PROFILES_ACTIVE=banco).");
+            erro("DB_URL não foi carregada. Confira o .env no diretório de trabalho ou a variável de ambiente DB_URL.");
+        }
+    }
+
+    private void conferirPerfil(Properties padroes, Properties env) {
+        String perfil = valor(padroes, env, "spring.profiles.active");
+        if (List.of(perfil.split(",")).stream().map(String::trim).anyMatch("banco"::equals)) {
+            ok("Perfil Spring ativo: banco.");
+        } else {
+            aviso("Perfil Spring banco não está ativo (perfil detectado: "
+                    + (perfil.isBlank() ? "default/H2" : perfil) + ").");
         }
     }
 
@@ -162,13 +205,13 @@ public class TesteConexao {
             erro("A URL é a string \"URI\" do Supabase. No Java ela precisa começar com jdbc:postgresql://");
         }
         if (url.contains("@")) {
-            erro("A URL tem usuário e senha dentro (user:senha@host). Tire: usuário e senha vão em DB_USER e DB_PASSWORD.");
+            erro("A URL contém informação de usuário. Mantenha usuário e senha somente em DB_USER e DB_PASSWORD.");
         }
         if (url.contains("[") || url.contains("]")) {
             erro("A URL tem colchetes [ ]. Eles são só um aviso do Supabase (ex.: [YOUR-PASSWORD]); não devem existir.");
         }
         if (!url.startsWith("jdbc:postgresql://")) {
-            erro("A URL deve começar com jdbc:postgresql://  (agora começa com: " + url.substring(0, Math.min(url.length(), 22)) + ")");
+            erro("A URL JDBC deve começar com jdbc:postgresql://; o valor não será exibido.");
             return null;
         }
         try {
@@ -180,7 +223,7 @@ public class TesteConexao {
             ok("URL no formato certo. Servidor: " + uri.getHost() + ", porta " + (uri.getPort() == -1 ? 5432 : uri.getPort()) + ".");
             return uri;
         } catch (IllegalArgumentException e) {
-            erro("A URL tem caracteres inválidos: " + e.getMessage());
+            erro("A URL tem caracteres inválidos (valor não exibido).");
             return null;
         }
     }
@@ -192,14 +235,13 @@ public class TesteConexao {
         }
         String host = uri == null ? "" : uri.getHost();
         if (host.contains("pooler.supabase.com") && !usuario.contains(".")) {
-            erro("No pooler do Supabase o usuário é postgres.<código-do-projeto> (agora está só \"" + usuario + "\"). "
-                    + "O erro típico disso é \"Tenant or user not found\".");
-        } else if (usuario.endsWith("CODIGO_DO_SEU_PROJETO")) {
-            erro("DB_USER ainda tem o texto de exemplo. Troque CODIGO_DO_SEU_PROJETO pelo código real do projeto.");
+            erro("No pooler do Supabase o usuário deve incluir o identificador do projeto (postgres.<código-do-projeto>).");
+        } else if (usuario.contains("<") || usuario.contains(">") || usuario.endsWith("CODIGO_DO_SEU_PROJETO")) {
+            erro("DB_USER ainda contém um marcador de exemplo. Substitua-o pelos dados do projeto.");
         } else if (host.startsWith("db.") && host.endsWith(".supabase.co") && usuario.contains(".")) {
             aviso("Na conexão direta (db.xxx.supabase.co) o usuário é só \"postgres\".");
         } else {
-            ok("Usuário: " + usuario);
+            ok("DB_USER está configurada (valor não exibido).");
         }
     }
 
@@ -208,7 +250,7 @@ public class TesteConexao {
             erro("DB_PASSWORD está vazia ou não existe.");
             return;
         }
-        if (senha.startsWith("[") || senha.contains("YOUR-PASSWORD")) {
+        if (senha.startsWith("[") || senha.startsWith("<") || senha.contains("YOUR-PASSWORD")) {
             erro("A senha ainda é um texto de exemplo. Coloque a senha real do banco.");
             return;
         }
@@ -274,9 +316,9 @@ public class TesteConexao {
     private void conferirBanco(String url, String usuario, String senha) {
         try (Connection conexao = DriverManager.getConnection(url, usuario, senha);
              Statement comando = conexao.createStatement();
-             ResultSet rs = comando.executeQuery("select current_user, current_database()")) {
+             ResultSet rs = comando.executeQuery("select 1")) {
             rs.next();
-            ok("CONECTOU no banco! Usuário \"" + rs.getString(1) + "\", banco \"" + rs.getString(2) + "\".");
+            ok("Conexão PostgreSQL estabelecida com sucesso.");
 
             DatabaseMetaData meta = conexao.getMetaData();
             List<String> tabelas = new ArrayList<>();
@@ -292,8 +334,11 @@ public class TesteConexao {
     }
 
     private static String explicar(SQLException e) {
-        String msg = String.valueOf(e.getMessage());
-        String m = msg.toLowerCase();
+        StringBuilder mensagens = new StringBuilder();
+        for (SQLException atual = e; atual != null; atual = atual.getNextException()) {
+            mensagens.append(' ').append(String.valueOf(atual.getMessage()));
+        }
+        String m = mensagens.toString().toLowerCase(Locale.ROOT);
         if (m.contains("no suitable driver")) {
             return "o driver do PostgreSQL não está no projeto. Confira a dependência org.postgresql:postgresql no pom.xml e recarregue o Maven.";
         }
@@ -310,7 +355,15 @@ public class TesteConexao {
         if (m.contains("timed out") || m.contains("timeout")) {
             return "tempo esgotado: rede bloqueada ou projeto pausado.";
         }
-        return msg.replace('\n', ' ');
+        if (m.contains("unknownhost") || m.contains("could not translate host") || m.contains("name or service not known")) {
+            return "falha de DNS ao localizar o servidor. Confira o host configurado e a rede.";
+        }
+        if (m.contains("connection refused") || m.contains("connection attempt failed")) {
+            return "conexão recusada pelo host/porta. Confira o endpoint do Supabase, a porta e o estado do projeto.";
+        }
+        String sqlState = e.getSQLState();
+        return "falha JDBC (SQLState " + (sqlState == null ? "indisponível" : sqlState)
+                + "). Confira endpoint, porta, SSL e credenciais; detalhes brutos foram omitidos.";
     }
 
     // ---------------------------------------------------------------- saída

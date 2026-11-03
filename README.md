@@ -99,11 +99,14 @@ Tabelas `usuario` e `ocorrencia`, criadas pelo Hibernate (`create-drop` no H2, `
 
 Toda a configuração secreta fica em **um único arquivo, o `.env`**, que nunca vai para o GitHub.
 
-1. Copie o modelo e preencha: `cp .env.example .env` (no Windows: copie e renomeie o arquivo).
+1. Copie o modelo [`.env.example`](./.env.example) para `.env` e preencha (no Windows: copie o arquivo e renomeie a cópia para `.env`).
 2. Preencha `DB_URL` e `DB_USER` com os dados do Supabase (Connect, **Session pooler**: o usuário é `postgres.<código-do-projeto>`), `DB_PASSWORD` com a senha do banco, `JWT_SEGREDO` com um texto aleatório de 32+ caracteres (`openssl rand -base64 48`) e `ADMIN_SENHA` com a senha do administrador.
-3. Rode o sistema. A linha `spring.profiles.active=banco` do `.env` liga a conexão com o banco; no topo da tela deve aparecer "Dados: Banco de dados (PostgreSQL)". Se aparecer H2, use também `-Dspring.profiles.active=banco` nas VM options.
-4. **Se algo não conectar, rode a ferramenta de diagnóstico:** no IntelliJ, botão direito em `ferramentas/TesteConexao.java`, Run. Ela confere cada valor do `.env` e tenta conectar, explicando o erro em português. Rode na pasta raiz do projeto.
-5. **Supabase:** ative o RLS nas duas tabelas (comandos no fim do `schema-postgres.sql`). A tabela `usuario` guarda hashes de senha e, sem isso, a API pública do Supabase pode expô-los.
+3. No IntelliJ IDEA, abra **Run > Edit Configurations...**, selecione `UrbanAlertaApplication` e defina **Working directory** como `$PROJECT_DIR$`. Selecione o perfil `banco` em **Active profiles** (ou use `-Dspring.profiles.active=banco` nas VM options). O diretório é importante: o Spring carrega `.env` de forma relativa à pasta de execução da JVM.
+4. Rode o sistema; no topo da tela deve aparecer "Dados: Banco de dados (PostgreSQL)". Para usar o H2 de demonstração, remova `spring.profiles.active=banco` do `.env` e não selecione o perfil `banco` na configuração de execução.
+5. **Se algo não conectar, rode a ferramenta de diagnóstico:** no IntelliJ, botão direito em `src/main/java/com/urbanalerta/tools/TesteConexao.java`, Run. Configure também o diretório de trabalho como `$PROJECT_DIR$`. Ela verifica a configuração e tenta conectar, sem imprimir a senha.
+6. **Supabase:** ative o RLS nas duas tabelas (comandos no fim do `schema-postgres.sql`). A tabela `usuario` guarda hashes de senha e, sem isso, a API pública do Supabase pode expô-los.
+
+O Spring também procura `config/application-banco.properties` no diretório de trabalho. Se esse arquivo local existir, as propriedades nele definidas podem sobrescrever as do perfil empacotado (inclusive senha, JWT e admin). A pasta `config/` é ignorada pelo Git; evite manter valores conflitantes entre ela e `.env`.
 
 Regras do `.env`: sem aspas, sem comentário no fim da linha e, de preferência, sem espaços, acentos nem os símbolos `$ { } # \` nas senhas. O administrador é criado na primeira execução; trocar `ADMIN_SENHA` depois não altera uma conta que já existe.
 

@@ -56,11 +56,6 @@ textarea { resize: none; }
 .abas { display: grid; grid-template-columns: 1fr 1fr; background: #EAE6DB; border-radius: 12px; padding: 4px; margin-bottom: 8px; }
 .abas button { min-height: 44px; border: 0; background: transparent; border-radius: 9px; font-weight: 700; color: var(--mudo); cursor: pointer; }
 .abas button[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: var(--sombra); }
-.demo { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--borda); font-size: 13px; color: var(--mudo); }
-.demo p { margin: 0 0 8px; }
-.demo-botoes { display: flex; gap: 8px; flex-wrap: wrap; }
-.demo-botoes button { min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1.5px solid var(--borda); background: #fff; font-weight: 700; font-size: 13px; cursor: pointer; }
-.demo-botoes button:hover { border-color: var(--verde); color: var(--verde); }
 @media (min-width: 860px) {
   .acesso { grid-template-columns: 1.1fr 1fr; }
   .acesso-marca { padding: 56px; }

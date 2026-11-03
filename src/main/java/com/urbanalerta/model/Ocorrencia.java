@@ -98,7 +98,7 @@ public class Ocorrencia {
                 descricao, StatusOcorrencia.PENDENTE, LocalDateTime.now(), autor, null);
     }
 
-    /** Monta uma ocorrência com todos os campos definidos (usado nos dados de demonstração). */
+    /** Reconstitui uma ocorrência com os campos persistidos. */
     public static Ocorrencia restaurar(UUID id, TipoOcorrencia tipo, String endereco, double latitude, double longitude,
                                        LocalDateTime dataHoraRegistro, String descricao, StatusOcorrencia status,
                                        LocalDateTime atualizadoEm, Usuario autor, Usuario responsavel) {

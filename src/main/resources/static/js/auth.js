@@ -4,10 +4,6 @@
  * O token JWT fica na sessionStorage: some quando a aba é fechada.
  */
 const CHAVE_AVISO = "urbanalerta.aviso";
-const CONTAS_DEMO = {
-  cliente: ["cliente@urbanalerta.local", "cliente123"],
-  admin: ["admin@urbanalerta.local", "admin123"],
-};
 
 function sair() {
   sessionStorage.removeItem(CHAVE_TOKEN);
@@ -81,13 +77,6 @@ function ligarAcesso() {
     enviarAcesso($("btn-cadastro"), "Criando conta…", "Criar conta", "erro-cadastro", () => api.cadastrar(nome, email, senha));
   });
 
-  document.querySelectorAll("[data-demo]").forEach((b) => b.addEventListener("click", () => {
-    const [email, senha] = CONTAS_DEMO[b.dataset.demo];
-    trocarAba("entrar");
-    $("entrar-email").value = email;
-    $("entrar-senha").value = senha;
-    $("form-entrar").requestSubmit();
-  }));
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -97,7 +86,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     location.reload();
   };
   ligarAcesso();
-  api.sistema().then((info) => { $("demo").hidden = !info.demonstracao; }).catch(() => {});
 
   if (lerToken()) {
     try {

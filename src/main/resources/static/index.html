@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>UrbanAlerta</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ===== Acesso: entrar ou criar conta ===== -->
+<main id="acesso" class="acesso" hidden>
+  <section class="acesso-marca">
+    <div class="logo grande" aria-hidden="true">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+    </div>
+    <h1>UrbanAlerta</h1>
+    <p class="lema">Problemas da cidade, registrados e acompanhados em um só lugar.</p>
+    <ul class="beneficios">
+      <li>Registre buracos, falta de iluminação, lixo e mais</li>
+      <li>Veja cada ocorrência no mapa</li>
+      <li>Acompanhe o andamento até a resolução</li>
+    </ul>
+  </section>
+
+  <section class="acesso-form">
+    <div class="abas" role="tablist" aria-label="Acesso">
+      <button type="button" role="tab" id="aba-entrar" aria-selected="true" aria-controls="form-entrar" data-aba="entrar">Entrar</button>
+      <button type="button" role="tab" id="aba-cadastro" aria-selected="false" aria-controls="form-cadastro" data-aba="cadastro">Criar conta</button>
+    </div>
+
+    <p id="aviso-acesso" class="aviso-info" role="status" hidden></p>
+
+    <form id="form-entrar" role="tabpanel" aria-labelledby="aba-entrar" novalidate>
+      <label for="entrar-email">E-mail</label>
+      <input id="entrar-email" type="email" autocomplete="username" placeholder="voce@exemplo.com">
+      <label for="entrar-senha">Senha</label>
+      <input id="entrar-senha" type="password" autocomplete="current-password">
+      <p id="erro-entrar" class="erro" role="alert" hidden></p>
+      <button type="submit" class="primario" id="btn-entrar">Entrar</button>
+    </form>
+
+    <form id="form-cadastro" role="tabpanel" aria-labelledby="aba-cadastro" novalidate hidden>
+      <label for="cad-nome">Nome</label>
+      <input id="cad-nome" type="text" autocomplete="name" maxlength="100">
+      <label for="cad-email">E-mail</label>
+      <input id="cad-email" type="email" autocomplete="email" maxlength="150">
+      <label for="cad-senha">Senha</label>
+      <input id="cad-senha" type="password" autocomplete="new-password" minlength="6" maxlength="72">
+      <p class="dica">Mínimo de 6 caracteres. Contas criadas aqui são de cliente.</p>
+      <p id="erro-cadastro" class="erro" role="alert" hidden></p>
+      <button type="submit" class="primario" id="btn-cadastro">Criar conta</button>
+    </form>
+
+    <div id="demo" class="demo" hidden>
+      <p>Contas de demonstração:</p>
+      <div class="demo-botoes">
+        <button type="button" data-demo="cliente">Entrar como cliente</button>
+        <button type="button" data-demo="admin">Entrar como admin</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ===== Aplicativo (depois do login) ===== -->
+<div id="app" data-tela="mapa" hidden>
+
+  <header class="topo">
+    <div class="logo" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+    </div>
+    <h1>UrbanAlerta</h1>
+    <span id="armazenamento" class="selo" title="Onde os dados estão guardados"></span>
+    <div class="usuario">
+      <span id="usuario-nome" class="usuario-nome"></span>
+      <span id="usuario-perfil" class="perfil"></span>
+      <button type="button" id="sair" class="sair">Sair</button>
+    </div>
+  </header>
+
+  <nav class="nav" aria-label="Navegação principal">
+    <button type="button" data-tela="mapa" class="ativo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg><span>Mapa</span>
+    </button>
+    <button type="button" data-tela="registrar" data-perfil="CLIENTE">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span>Registrar</span>
+    </button>
+    <button type="button" data-tela="minhas" data-perfil="CLIENTE">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Minhas</span>
+    </button>
+    <button type="button" data-tela="fila" data-perfil="ADMIN">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg><span>Gestão</span>
+    </button>
+  </nav>
+
+  <div class="corpo">
+    <aside class="painel">
+
+      <!-- Cliente: registrar -->
+      <section id="tela-registrar" class="tela" data-perfil="CLIENTE" aria-label="Registrar ocorrência">
+        <div class="barra">
+          <button type="button" class="voltar solo-mobile" data-voltar aria-label="Voltar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+          <h2>Registrar ocorrência</h2>
+        </div>
+        <form id="form" class="conteudo" novalidate>
+          <fieldset>
+            <legend>Tipo do problema</legend>
+            <div id="tipos" class="grade-tipos"></div>
+          </fieldset>
+          <label for="endereco">Endereço</label>
+          <input id="endereco" type="text" maxlength="300" autocomplete="off" placeholder="Ex.: Rua das Flores, 123, Irecê, BA">
+          <p class="dica">Inclua cidade e estado. O servidor converte o endereço em latitude e longitude.</p>
+          <label for="dataHora">Data e hora</label>
+          <input id="dataHora" type="datetime-local">
+          <label for="descricao">Descrição (opcional)</label>
+          <textarea id="descricao" rows="3" maxlength="1000" placeholder="Detalhes adicionais sobre o problema"></textarea>
+          <p id="erro-form" class="erro" role="alert" hidden></p>
+          <button id="enviar" class="primario" type="submit">Registrar ocorrência</button>
+        </form>
+      </section>
+
+      <!-- Cliente: minhas ocorrências -->
+      <section id="tela-minhas" class="tela" data-perfil="CLIENTE" aria-label="Minhas ocorrências">
+        <div class="barra"><h2>Minhas ocorrências</h2></div>
+        <div id="minhas" class="conteudo"></div>
+      </section>
+
+      <!-- Admin: gestão -->
+      <section id="tela-fila" class="tela" data-perfil="ADMIN" aria-label="Gestão de ocorrências">
+        <div class="barra"><h2>Gestão de ocorrências</h2></div>
+        <div id="fila" class="conteudo"></div>
+      </section>
+
+      <!-- Detalhe (os dois perfis) -->
+      <section id="tela-detalhe" class="tela" aria-label="Detalhe da ocorrência">
+        <div class="barra">
+          <button type="button" class="voltar" data-voltar aria-label="Voltar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+          <h2>Ocorrência</h2>
+        </div>
+        <div id="detalhe" class="conteudo"></div>
+      </section>
+    </aside>
+
+    <section class="mapa-area" aria-label="Mapa">
+      <div id="resumo" class="chips" aria-live="polite"></div>
+      <div id="mapa" aria-label="Mapa com as ocorrências registradas"></div>
+      <div id="cartao" class="cartao"></div>
+    </section>
+  </div>
+
+  <div id="aviso" class="aviso" role="status" hidden></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/mapa.js"></script>
+<script src="js/app.js"></script>
+<script src="js/auth.js"></script>
+</body>
+</html>

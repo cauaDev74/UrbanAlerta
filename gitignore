@@ -1,0 +1,14 @@
+# Segredos: senha do banco, JWT e senha do admin ficam em config/. NUNCA suba para o GitHub.
+config/
+.env
+*.env
+
+# Arquivos gerados
+target/
+*.class
+*.log
+
+# IDE
+.idea/
+*.iml
+.vscode/

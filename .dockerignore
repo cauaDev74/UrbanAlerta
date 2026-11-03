@@ -1,0 +1,7 @@
+.env
+.env.*
+config/
+target/
+.idea/
+.git/
+README.md

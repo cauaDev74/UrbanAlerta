@@ -1,0 +1,22 @@
+# Dockerfile.vercel: a Vercel (Container Runtime, beta) detecta este arquivo, constrói a imagem e
+# envia todo o tráfego do projeto para o container. Precisa se chamar exatamente Dockerfile.vercel.
+# Para Render, Railway ou Fly.io, use o mesmo conteúdo em um arquivo chamado Dockerfile.
+
+# ---------- Etapa 1: compila o projeto com Maven ----------
+FROM maven:3.9-eclipse-temurin-17 AS build
+WORKDIR /app
+COPY pom.xml .
+RUN mvn -q -B dependency:go-offline
+COPY src ./src
+RUN mvn -q -B package -DskipTests
+
+# ---------- Etapa 2: imagem final, só com o Java e o .jar ----------
+FROM eclipse-temurin:17-jre
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
+
+# O servidor precisa escutar na porta da variável PORT, que a Vercel define sozinha (padrão 80).
+# O Spring já lê PORT (server.port=${PORT:8080}): não é preciso configurar nada.
+# Segredos (DB_URL, DB_USER, DB_PASSWORD, JWT_SEGREDO, ADMIN_SENHA...) entram pelas variáveis de ambiente
+# do projeto na Vercel, nunca pela imagem. Defina também SPRING_PROFILES_ACTIVE=banco.
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-XX:+UseSerialGC", "-XX:TieredStopAtLevel=1", "-jar", "app.jar"]

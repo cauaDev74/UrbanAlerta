@@ -184,3 +184,75 @@ textarea { resize: none; }
 @media (min-width: 960px) { .aviso { bottom: 24px; } }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* ---------- Ajustes para celulares ---------- */
+@media (max-width: 640px) {
+  #app {
+    max-width: none;
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  .topo {
+    gap: 8px;
+    padding: 10px 12px 8px;
+    row-gap: 8px;
+  }
+  .topo h1 { font-size: 20px; }
+  .selo {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+  }
+  .usuario { gap: 6px; }
+  .usuario-nome { max-width: 10ch; font-size: 12px; }
+  .perfil { font-size: 10px; padding: 4px 7px; }
+  .sair { min-height: 44px; }
+
+  .nav { flex: none; }
+  .nav button { min-height: 60px; }
+  .nav button span { font-size: 11px; }
+
+  .conteudo {
+    padding: 4px 12px 20px;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .barra { gap: 8px; padding: 4px 12px 8px; }
+  .barra h2 { font-size: 20px; }
+  .solo-mobile { display: flex; }
+
+  .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 4px 12px 10px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: none; min-height: 40px; }
+  #mapa {
+    min-height: 160px;
+    margin: 0 10px;
+    border-radius: 16px;
+  }
+  .cartao { margin: 8px 10px 10px; }
+
+  input[type=text], input[type=email], input[type=password],
+  input[type=datetime-local], textarea { font-size: 16px; }
+  .opcao-tipo span { min-height: 52px; }
+  .card-acoes > button { min-height: 44px; }
+
+  .acesso-marca { padding: 24px 20px 20px; gap: 8px; }
+  .acesso-marca h1 { font-size: 30px; }
+  .lema { font-size: 15px; }
+  .beneficios { gap: 5px; font-size: 13px; }
+  .acesso-form { padding: 20px; }
+}
+
+@media (max-width: 640px) and (max-height: 700px) {
+  .acesso-marca { padding-top: 18px; padding-bottom: 14px; }
+  .acesso-marca .logo.grande { width: 48px; height: 48px; }
+  .beneficios { display: none; }
+}

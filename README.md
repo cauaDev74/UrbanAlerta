@@ -28,6 +28,17 @@ Essas contas e 6 ocorrências **fictícias** (endereços inventados, coordenadas
 
 O mapa e a conversão de endereços precisam de internet (OpenStreetMap e Nominatim). Testes: `mvn test`.
 
+### Acessar pelo celular
+
+A interface se adapta a celulares e pode ser aberta no navegador, sem instalar um aplicativo:
+
+1. Inicie o sistema no computador com `mvn spring-boot:run`.
+2. Conecte o celular e o computador à mesma rede Wi-Fi.
+3. No computador, consulte o endereço IPv4 da rede local (por exemplo, com `ipconfig` no Windows).
+4. No navegador do celular, abra `http://IP-DO-COMPUTADOR:8080` (substitua pelo endereço encontrado; não use `localhost`).
+
+Se a página não abrir, permita conexões de entrada na porta 8080 no firewall do computador e confira se a rede permite comunicação entre dispositivos. O mapa e a busca de endereço também precisam de internet.
+
 ## Quem pode fazer o quê
 
 | Ação | Cliente | Administrador |

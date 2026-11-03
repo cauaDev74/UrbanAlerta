@@ -105,6 +105,8 @@ textarea { resize: none; }
   .chips { padding-left: 0; padding-right: 0; }
   #mapa { margin: 0; }
   .cartao { margin-left: 0; margin-right: 0; }
+  #app[data-tela="dashboard"] .corpo { grid-template-columns: minmax(0, 1fr); }
+  #app[data-tela="dashboard"] .mapa-area { display: none; }
 }
 
 /* ---------- Mapa ---------- */
@@ -139,6 +141,43 @@ textarea { resize: none; }
 .kpi { background: var(--bg); border: 1px solid var(--borda); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 2px; }
 .kpi strong { font-family: "Bricolage Grotesque", sans-serif; font-size: 28px; line-height: 1.1; }
 .kpi span { font-size: 12px; color: var(--mudo); }
+
+/* ---------- Dashboard administrativo ---------- */
+.dashboard { padding-bottom: 28px; }
+.dashboard-intro { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 16px; }
+.dashboard-intro p { margin: 0; color: var(--mudo); font-size: 14px; }
+.dashboard-atualizar { flex: none; }
+.dashboard-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.dashboard-kpi { min-width: 0; padding: 14px; border: 1px solid var(--borda); border-radius: 16px; background: var(--bg); display: flex; flex-direction: column; gap: 6px; }
+.dashboard-kpi span { color: var(--mudo); font-size: 12px; line-height: 1.35; }
+.dashboard-kpi strong { font-family: "Bricolage Grotesque", sans-serif; font-size: clamp(22px, 2vw, 30px); line-height: 1.1; overflow-wrap: anywhere; }
+.dashboard-kpi.pendente strong { color: var(--ambar-texto); }
+.dashboard-kpi.analise strong { color: var(--azul); }
+.dashboard-kpi.resolvida strong { color: var(--ok); }
+.dashboard-graficos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+.grafico-card { min-width: 0; padding: 16px; border: 1px solid var(--borda); border-radius: 18px; background: #fff; box-shadow: var(--sombra); }
+.grafico-card h3 { margin: 0 0 12px; font-family: "Bricolage Grotesque", sans-serif; font-size: 18px; }
+.grafico-media { margin: -4px 0 12px; color: var(--mudo); font-size: 13px; }
+.grafico-media strong { color: var(--verde); font-size: 20px; }
+.grafico-media span { display: block; margin-top: 2px; font-size: 12px; }
+.status-grafico { display: grid; gap: 12px; }
+.status-empilhado { display: flex; overflow: hidden; min-height: 22px; border-radius: 999px; background: #ECE9E1; }
+.status-parte { min-width: 0; }
+.status-parte.pendente, .status-ponto.pendente { background: var(--ambar); }
+.status-parte.analise, .status-ponto.analise { background: var(--azul); }
+.status-parte.resolvida, .status-ponto.resolvida { background: var(--ok); }
+.status-legenda { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.status-legenda li, .status-legenda li > span { display: flex; align-items: center; }
+.status-legenda li { justify-content: space-between; gap: 12px; font-size: 13px; }
+.status-legenda li > span { gap: 8px; }
+.status-ponto { width: 10px; height: 10px; border-radius: 50%; }
+.grafico-barras { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.grafico-barras li { display: grid; grid-template-columns: minmax(80px, .7fr) minmax(40px, 1fr) 28px; align-items: center; gap: 9px; }
+.grafico-rotulo { overflow: hidden; color: var(--mudo); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.grafico-trilho { height: 12px; overflow: hidden; border-radius: 999px; background: #EEECE6; }
+.grafico-preenchimento { display: block; height: 100%; min-width: 0; border-radius: inherit; background: var(--verde); }
+.grafico-preenchimento.tipo { background: var(--azul); }
+.grafico-valor { text-align: right; font-size: 13px; }
 
 /* ---------- Formulário de registro ---------- */
 .grade-tipos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -244,6 +283,12 @@ textarea { resize: none; }
   .lema { font-size: 15px; }
   .beneficios { gap: 5px; font-size: 13px; }
   .acesso-form { padding: 20px; }
+  .dashboard-intro { align-items: flex-start; }
+  .dashboard-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .dashboard-kpi { padding: 12px; }
+  .dashboard-graficos { grid-template-columns: 1fr; gap: 10px; margin-top: 12px; }
+  .grafico-card { padding: 14px; }
+  .grafico-barras li { grid-template-columns: minmax(76px, .7fr) minmax(36px, 1fr) 24px; gap: 7px; }
 }
 
 @media (max-width: 640px) and (max-height: 700px) {

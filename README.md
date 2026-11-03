@@ -4,7 +4,7 @@ Sistema web para identificação e denúncia de problemas de infraestrutura urba
 Projeto da disciplina de Sistemas Operacionais, IFBA Campus Irecê.
 
 - **Cliente:** cria conta, registra ocorrências, vê o mapa e acompanha as suas.
-- **Administrador:** vê todas as ocorrências, os indicadores e **resolve** (Pendente, Em análise, Resolvido).
+- **Administrador:** acompanha um dashboard com gráficos e indicadores, gerencia a fila e **resolve** ocorrências (Pendente, Em análise, Resolvido).
 - **Back-end 100% Java**, em camadas (Spring Boot + JPA/Hibernate), com login por JWT.
 - **Banco:** PostgreSQL (por exemplo, Supabase), configurado por variáveis de ambiente ou pelo arquivo `.env`.
 

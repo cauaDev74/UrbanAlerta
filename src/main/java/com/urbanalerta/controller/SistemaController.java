@@ -10,16 +10,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class SistemaController {
 
     private final String armazenamento;
-    private final boolean demonstracao;
 
-    public SistemaController(@Value("${urbanalerta.armazenamento.rotulo:Banco de dados}") String armazenamento,
-                             @Value("${urbanalerta.dados-demonstracao:false}") boolean demonstracao) {
+    public SistemaController(@Value("${urbanalerta.armazenamento.rotulo:Banco de dados}") String armazenamento) {
         this.armazenamento = armazenamento;
-        this.demonstracao = demonstracao;
     }
 
     @GetMapping("/sistema")
     public InfoSistema sistema() {
-        return new InfoSistema(armazenamento, demonstracao);
+        return new InfoSistema(armazenamento);
     }
 }

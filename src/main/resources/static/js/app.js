@@ -2,7 +2,7 @@
  * app.js
  * Aplicativo depois do login. Mesmo código para os dois perfis; o que aparece muda conforme o perfil:
  *  - CLIENTE: mapa, registrar ocorrência, minhas ocorrências e detalhe (somente leitura);
- *  - ADMIN: mapa, gestão (indicadores + fila) e detalhe com os botões que mudam o status.
+ *  - ADMIN: mapa, dashboard, fila de gestão e detalhe com os botões que mudam o status.
  * Todos os dados vêm da API Java (api.js). Aqui só existe lógica de apresentação.
  */
 const ROTULO_STATUS = { PENDENTE: "Pendente", EM_ANALISE: "Em análise", RESOLVIDO: "Resolvido" };
@@ -31,6 +31,12 @@ function esc(texto) {
 
 function formatarDataHora(iso) {
   return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+}
+
+function lerData(iso) {
+  if (!iso) return null;
+  const data = new Date(iso);
+  return Number.isNaN(data.getTime()) ? null : data;
 }
 
 function textoDias(o) {
@@ -152,25 +158,146 @@ function renderMinhas() {
   $("minhas").innerHTML = '<div class="lista">' + minhas.map((o) => htmlCard(o, { comMapa: true })).join("") + "</div>";
 }
 
-function htmlKpis() {
+function mediaTexto(valor, casas = 1) {
+  return valor.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
+}
+
+function gerarSemanas(quantidade) {
+  const hoje = new Date();
+  const segunda = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  segunda.setHours(0, 0, 0, 0);
+  segunda.setDate(segunda.getDate() - ((segunda.getDay() + 6) % 7));
+  return Array.from({ length: quantidade }, (_, indice) => {
+    const inicio = new Date(segunda);
+    inicio.setDate(inicio.getDate() - (quantidade - indice - 1) * 7);
+    const fim = new Date(inicio);
+    fim.setDate(fim.getDate() + 7);
+    return {
+      inicio,
+      fim,
+      rotulo: inicio.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+    };
+  });
+}
+
+function gerarMeses(quantidade) {
+  const hoje = new Date();
+  return Array.from({ length: quantidade }, (_, indice) => {
+    const inicio = new Date(hoje.getFullYear(), hoje.getMonth() - quantidade + indice + 1, 1);
+    const fim = new Date(inicio.getFullYear(), inicio.getMonth() + 1, 1);
+    const mes = inicio.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
+    return {
+      inicio,
+      fim,
+      rotulo: mes + "/" + String(inicio.getFullYear()).slice(-2),
+    };
+  });
+}
+
+function agruparResolvidas(periodos, resolvidas) {
+  return periodos.map((periodo) => ({
+    ...periodo,
+    quantidade: resolvidas.filter((ocorrencia) => {
+      const resolvidaEm = lerData(ocorrencia.atualizadoEm);
+      return resolvidaEm && resolvidaEm >= periodo.inicio && resolvidaEm < periodo.fim;
+    }).length,
+  }));
+}
+
+function htmlGraficoBarras(periodos, descricao) {
+  const maximo = Math.max(1, ...periodos.map((periodo) => periodo.quantidade));
+  return '<ol class="grafico-barras" role="img" aria-label="' + esc(descricao) + '">' +
+    periodos.map((periodo) => {
+      const largura = periodo.quantidade / maximo * 100;
+      return '<li><span class="grafico-rotulo">' + esc(periodo.rotulo) + "</span>" +
+        '<span class="grafico-trilho"><span class="grafico-preenchimento" style="width:' + largura.toFixed(1) + '%"></span></span>' +
+        '<strong class="grafico-valor">' + periodo.quantidade + "</strong></li>";
+    }).join("") + "</ol>";
+}
+
+function renderDashboard() {
   const todas = estado.ocorrencias;
-  const contar = (s) => todas.filter((o) => o.status === s).length;
+  const contar = (status) => todas.filter((o) => o.status === status).length;
+  const pendentes = contar("PENDENTE");
+  const emAnalise = contar("EM_ANALISE");
   const resolvidas = todas.filter((o) => o.status === "RESOLVIDO");
-  const media = resolvidas.length ? resolvidas.reduce((soma, o) => soma + o.diasEmAberto, 0) / resolvidas.length : null;
-  const mediaTexto = media === null ? "—" : media.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
-  const kpi = (valor, rotulo, cor) => '<div class="kpi"><strong' + (cor ? ' style="color:' + cor + '"' : "") + ">" + valor + "</strong><span>" + rotulo + "</span></div>";
-  return '<div class="kpis">' +
-    kpi(todas.length, "Total") + kpi(contar("PENDENTE"), "Pendentes", "var(--ambar-texto)") +
-    kpi(contar("EM_ANALISE"), "Em análise", "var(--azul)") + kpi(contar("RESOLVIDO"), "Resolvidas", "var(--ok)") +
-    kpi(mediaTexto, "Dias até resolver (média)") + "</div>";
+  const total = todas.length;
+  const taxaResolucao = total ? resolvidas.length / total * 100 : 0;
+  const duracoes = resolvidas.map((o) => {
+    const registro = lerData(o.dataHoraRegistro);
+    const resolvidaEm = lerData(o.atualizadoEm);
+    return registro && resolvidaEm ? Math.max(0, (resolvidaEm - registro) / 86400000) : null;
+  }).filter((dias) => dias !== null);
+  const mediaResolucao = duracoes.length
+    ? duracoes.reduce((soma, dias) => soma + dias, 0) / duracoes.length
+    : null;
+
+  const semanas = agruparResolvidas(gerarSemanas(8), resolvidas);
+  const meses = agruparResolvidas(gerarMeses(6), resolvidas);
+  const mediaSemana = semanas.reduce((soma, semana) => soma + semana.quantidade, 0) / semanas.length;
+  const mediaMes = meses.reduce((soma, mes) => soma + mes.quantidade, 0) / meses.length;
+
+  const porTipo = Object.values(todas.reduce((grupos, o) => {
+    const nome = o.tipoDescricao || "Outro";
+    grupos[nome] = grupos[nome] || { rotulo: nome, quantidade: 0 };
+    grupos[nome].quantidade += 1;
+    return grupos;
+  }, {})).sort((a, b) => b.quantidade - a.quantidade);
+  const tipos = porTipo.length ? porTipo : [{ rotulo: "Sem ocorrências", quantidade: 0 }];
+
+  const kpi = (valor, rotulo, classe) =>
+    '<article class="dashboard-kpi ' + classe + '"><span>' + rotulo + '</span><strong>' + valor + "</strong></article>";
+  const statusItems = [
+    { rotulo: "Pendentes", quantidade: pendentes, classe: "pendente" },
+    { rotulo: "Em análise", quantidade: emAnalise, classe: "analise" },
+    { rotulo: "Resolvidas", quantidade: resolvidas.length, classe: "resolvida" },
+  ];
+  const totalStatus = Math.max(1, total);
+  const graficoStatus = '<div class="status-grafico" role="img" aria-label="' +
+    esc("Ocorrências por status: " + statusItems.map((item) => item.rotulo + " " + item.quantidade).join(", ")) + '">' +
+    '<div class="status-empilhado">' + statusItems.map((item) =>
+      '<span class="status-parte ' + item.classe + '" style="width:' + (item.quantidade / totalStatus * 100).toFixed(1) + '%"></span>'
+    ).join("") + "</div>" +
+    '<ul class="status-legenda">' + statusItems.map((item) =>
+      '<li><span><i class="status-ponto ' + item.classe + '"></i>' + item.rotulo +
+      '</span><strong>' + item.quantidade + "</strong></li>"
+    ).join("") + "</ul></div>";
+  const maximoTipo = Math.max(1, ...tipos.map((tipo) => tipo.quantidade));
+  const graficoTipos = '<ol class="grafico-barras grafico-tipos" role="img" aria-label="Ocorrências por tipo de problema">' +
+    tipos.map((tipo) => '<li><span class="grafico-rotulo">' + esc(tipo.rotulo) + "</span>" +
+      '<span class="grafico-trilho"><span class="grafico-preenchimento tipo" style="width:' +
+      (tipo.quantidade / maximoTipo * 100).toFixed(1) + '%"></span></span>' +
+      '<strong class="grafico-valor">' + tipo.quantidade + "</strong></li>").join("") + "</ol>";
+
+  $("dashboard").innerHTML =
+    '<div class="dashboard-intro"><p>Visão geral dos registros e do andamento das solicitações.</p>' +
+    '<button type="button" class="contorno dashboard-atualizar" data-atualizar>Atualizar dados</button></div>' +
+    '<section class="dashboard-kpis" aria-label="Indicadores gerais">' +
+      kpi(total, "Total de ocorrências", "total") +
+      kpi(pendentes, "Pendentes", "pendente") +
+      kpi(emAnalise, "Em análise", "analise") +
+      kpi(resolvidas.length, "Resolvidas", "resolvida") +
+      kpi(mediaResolucao === null ? "—" : mediaTexto(mediaResolucao) + " dias", "Tempo médio até resolver", "tempo") +
+      kpi(mediaTexto(taxaResolucao, 0) + "%", "Taxa resolvida", "taxa") +
+    "</section>" +
+    '<div class="dashboard-graficos">' +
+      '<section class="grafico-card"><h3>Ocorrências por status</h3>' + graficoStatus + "</section>" +
+      '<section class="grafico-card"><h3>Resoluções por semana</h3>' +
+        '<p class="grafico-media"><strong>' + mediaTexto(mediaSemana) + '</strong> por semana em média <span>(últimas 8 semanas)</span></p>' +
+        htmlGraficoBarras(semanas, "Ocorrências resolvidas por semana nas últimas oito semanas") + "</section>" +
+      '<section class="grafico-card"><h3>Resoluções por mês</h3>' +
+        '<p class="grafico-media"><strong>' + mediaTexto(mediaMes) + '</strong> por mês em média <span>(últimos 6 meses)</span></p>' +
+        htmlGraficoBarras(meses, "Ocorrências resolvidas por mês nos últimos seis meses") + "</section>" +
+      '<section class="grafico-card"><h3>Ocorrências por tipo de problema</h3>' + graficoTipos + "</section>" +
+    "</div>";
 }
 
 function renderFila() {
   const lista = [...visiveis()].sort((a, b) =>
     ORDEM_STATUS.indexOf(a.status) - ORDEM_STATUS.indexOf(b.status) || b.diasEmAberto - a.diasEmAberto);
-  $("fila").innerHTML = htmlKpis() + (lista.length === 0
+  $("fila").innerHTML = lista.length === 0
     ? '<div class="vazio">Nenhuma ocorrência' + (estado.filtro ? " com este status." : " registrada ainda.") + "</div>"
-    : '<div class="lista">' + lista.map((o) => htmlCard(o, { comMapa: true })).join("") + "</div>");
+    : '<div class="lista">' + lista.map((o) => htmlCard(o, { comMapa: true })).join("") + "</div>";
 }
 
 function renderDetalhe() {
@@ -214,7 +341,10 @@ function renderDetalhe() {
 function renderTudo(ajustarMapa) {
   renderResumo();
   renderCartao();
-  if (ehAdmin()) renderFila(); else renderMinhas();
+  if (ehAdmin()) {
+    renderFila();
+    renderDashboard();
+  } else renderMinhas();
   if (estado.detalheId) renderDetalhe();
   Mapa.desenhar(visiveis(), estado.selecionadaId, ajustarMapa);
 }
@@ -306,8 +436,13 @@ function ligarEventos() {
   $("form").addEventListener("submit", enviarFormulario);
 
   document.addEventListener("click", (e) => {
-    const alvo = e.target.closest("[data-acao],[data-filtro],[data-ir]");
+    const alvo = e.target.closest("[data-acao],[data-filtro],[data-ir],[data-atualizar]");
     if (!alvo || alvo.disabled) return;
+    if (alvo.hasAttribute("data-atualizar")) {
+      alvo.disabled = true;
+      carregarDados(false).catch((erro) => avisar(erro.message, true)).finally(() => { alvo.disabled = false; });
+      return;
+    }
     if (alvo.dataset.filtro !== undefined) { aplicarFiltro(alvo.dataset.filtro); return; }
     if (alvo.dataset.ir) { abrirTela(alvo.dataset.ir); return; }
     const id = alvo.dataset.id;

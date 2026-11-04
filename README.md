@@ -4,9 +4,9 @@ Sistema web para identificação e denúncia de problemas de infraestrutura urba
 Projeto da disciplina de Sistemas Operacionais, IFBA Campus Irecê.
 
 - **Cliente:** cria conta, registra ocorrências, vê o mapa e acompanha as suas.
-- **Administrador:** vê todas as ocorrências, os indicadores e **resolve** (Pendente, Em análise, Resolvido).
+- **Administrador:** acompanha um dashboard com gráficos e indicadores, gerencia a fila e **resolve** ocorrências (Pendente, Em análise, Resolvido).
 - **Back-end 100% Java**, em camadas (Spring Boot + JPA/Hibernate), com login por JWT.
-- **Banco:** H2 por padrão (não precisa instalar nada) ou o seu banco (PostgreSQL/Supabase) com o perfil `banco`.
+- **Banco:** PostgreSQL (por exemplo, Supabase), configurado por variáveis de ambiente ou pelo arquivo `.env`.
 
 ## Como rodar
 
@@ -16,17 +16,20 @@ Pré-requisitos: Java 17 ou superior e Maven 3.9 ou superior (ou uma IDE que abr
 mvn spring-boot:run
 ```
 
-Abra **http://localhost:8080**. Na tela de acesso aparecem botões das **contas de demonstração**:
-
-| Conta | E-mail | Senha |
-|---|---|---|
-| Cliente | `cliente@urbanalerta.local` | `cliente123` |
-| Cliente (outro) | `vizinho@urbanalerta.local` | `cliente123` |
-| Administrador | `admin@urbanalerta.local` | `admin123` |
-
-Essas contas e 6 ocorrências **fictícias** (endereços inventados, coordenadas aproximadas de Irecê) só existem no modo padrão. No modo `banco` não são criadas.
+Configure o PostgreSQL, `JWT_SEGREDO` e as credenciais do administrador no `.env` conforme a seção [Conectar o banco](#conectar-o-seu-banco-perfil-banco-com-o-env), depois abra **http://localhost:8080**. Não existem contas ou ocorrências de demonstração: clientes devem criar uma conta pela tela e o administrador é provisionado com `ADMIN_EMAIL` e `ADMIN_SENHA`.
 
 O mapa e a conversão de endereços precisam de internet (OpenStreetMap e Nominatim). Testes: `mvn test`.
+
+### Acessar pelo celular
+
+A interface se adapta a celulares e pode ser aberta no navegador, sem instalar um aplicativo:
+
+1. Inicie o sistema no computador com `mvn spring-boot:run`.
+2. Conecte o celular e o computador à mesma rede Wi-Fi.
+3. No computador, consulte o endereço IPv4 da rede local (por exemplo, com `ipconfig` no Windows).
+4. No navegador do celular, abra `http://IP-DO-COMPUTADOR:8080` (substitua pelo endereço encontrado; não use `localhost`).
+
+Se a página não abrir, permita conexões de entrada na porta 8080 no firewall do computador e confira se a rede permite comunicação entre dispositivos. O mapa e a busca de endereço também precisam de internet.
 
 ## Quem pode fazer o quê
 
@@ -59,12 +62,12 @@ src/main/java/com/urbanalerta/
 ├── dto/          o que entra e sai da API (nunca expõe senha nem hash)
 ├── security/     SenhaService (PBKDF2), JwtService (HS256), AutenticacaoInterceptor, @ExigePerfil
 ├── exception/    exceções do sistema e TratadorDeErros (401, 403, 404, 409, 422...)
-└── config/       ConfiguracaoWeb (rotas protegidas) e InicializadorDeDados (admin e demonstração)
+└── config/       ConfiguracaoWeb (rotas protegidas) e InicializadorDeDados (admin configurado)
 src/main/resources/
 ├── static/       interface (HTML, CSS, JS puro + Leaflet.js)
 ├── banco/        schema-postgres.sql (alternativa ao ddl-auto)
-├── application.properties         (padrão: H2)
-└── application-banco.properties   (perfil banco: Supabase/PostgreSQL)
+├── application.properties         (PostgreSQL)
+└── application-banco.properties   (configurações do perfil banco)
 ```
 
 ## Segurança
@@ -82,7 +85,7 @@ src/main/resources/
 | POST | `/auth/cadastro` | público | Cria conta de cliente e devolve o token |
 | POST | `/auth/login` | público | Devolve o token JWT |
 | GET | `/auth/eu` | logado | Dados do usuário do token |
-| GET | `/sistema` | público | Onde os dados ficam e se há contas de demonstração |
+| GET | `/sistema` | público | Onde os dados ficam |
 | GET | `/tipos-ocorrencia` | logado | Tipos de ocorrência |
 | GET | `/ocorrencias` | logado | Lista as ocorrências |
 | GET | `/ocorrencias/{id}` | logado | Detalhe |
@@ -93,16 +96,16 @@ Erros vêm como `{"erro": "mensagem em português"}`: **401** sem login ou token
 
 ## Banco de dados (JPA + Hibernate)
 
-Tabelas `usuario` e `ocorrencia`, criadas pelo Hibernate (`create-drop` no H2, `update` no seu banco). `ocorrencia` tem `autor_id` (cliente) e `responsavel_id` (administrador que mudou o status). Há lock otimista (`@Version`) e índices em `status` e `data_hora_registro`. O `schema-postgres.sql` é uma alternativa para criar tudo à mão.
+Tabelas `usuario` e `ocorrencia`, criadas ou atualizadas pelo Hibernate (`update` por padrão). `ocorrencia` tem `autor_id` (cliente) e `responsavel_id` (administrador que mudou o status). Há lock otimista (`@Version`) e índices em `status` e `data_hora_registro`. O `schema-postgres.sql` é uma alternativa para criar tudo à mão.
 
 ### Conectar o seu banco (perfil `banco`) com o `.env`
 
 Toda a configuração secreta fica em **um único arquivo, o `.env`**, que nunca vai para o GitHub.
 
 1. Copie o modelo [`.env.example`](./.env.example) para `.env` e preencha (no Windows: copie o arquivo e renomeie a cópia para `.env`).
-2. Preencha `DB_URL` e `DB_USER` com os dados do Supabase (Connect, **Session pooler**: o usuário é `postgres.<código-do-projeto>`), `DB_PASSWORD` com a senha do banco, `JWT_SEGREDO` com um texto aleatório de 32+ caracteres (`openssl rand -base64 48`) e `ADMIN_SENHA` com a senha do administrador.
+2. Preencha `DB_URL` e `DB_USER` com os dados do Supabase (Connect, **Session pooler**: o usuário é `postgres.<código-do-projeto>`), `DB_PASSWORD` com a senha do banco, `JWT_SEGREDO` com um texto aleatório de 32+ caracteres (`openssl rand -base64 48`) e `ADMIN_EMAIL`/`ADMIN_SENHA` com as credenciais do administrador.
 3. No IntelliJ IDEA, abra **Run > Edit Configurations...**, selecione `UrbanAlertaApplication` e defina **Working directory** como `$PROJECT_DIR$`. Selecione o perfil `banco` em **Active profiles** (ou use `-Dspring.profiles.active=banco` nas VM options). O diretório é importante: o Spring carrega `.env` de forma relativa à pasta de execução da JVM.
-4. Rode o sistema; no topo da tela deve aparecer "Dados: Banco de dados (PostgreSQL)". Para usar o H2 de demonstração, remova `spring.profiles.active=banco` do `.env` e não selecione o perfil `banco` na configuração de execução.
+4. Rode o sistema; no topo da tela deve aparecer "Dados: Banco de dados (PostgreSQL)". O projeto não inclui H2; um PostgreSQL configurado é obrigatório.
 5. **Se algo não conectar, rode a ferramenta de diagnóstico:** no IntelliJ, botão direito em `src/main/java/com/urbanalerta/tools/TesteConexao.java`, Run. Configure também o diretório de trabalho como `$PROJECT_DIR$`. Ela verifica a configuração e tenta conectar, sem imprimir a senha.
 6. **Supabase:** ative o RLS nas duas tabelas (comandos no fim do `schema-postgres.sql`). A tabela `usuario` guarda hashes de senha e, sem isso, a API pública do Supabase pode expô-los.
 
@@ -115,8 +118,7 @@ Regras do `.env`: sem aspas, sem comentário no fim da linha e, de preferência,
 - **Processos e threads:** o Tomcat embutido atende cada requisição em uma thread; o pool de conexões é compartilhado entre elas.
 - **Concorrência:** `atualizarStatus` é `synchronized` e a entidade tem `@Version`: duas pessoas mudando a mesma ocorrência não se sobrescrevem.
 - **Redes:** o Nominatim e o banco são acessados por sockets TCP/IP (e DNS).
-- **Memória:** o H2 em memória vive no heap da JVM e some ao reiniciar.
-- **Arquivos e armazenamento:** com o perfil `banco`, o PostgreSQL grava os dados em disco.
+- **Arquivos e armazenamento:** o PostgreSQL grava os dados em disco.
 - **Segurança e permissões:** perfis (cliente/admin) e autenticação controlam quem acessa cada recurso.
 
 ## Publicar: GitHub e Vercel
@@ -126,8 +128,8 @@ A Vercel roda o projeto **inteiro** (API Java + interface) a partir do `Dockerfi
 1. **GitHub:** suba o repositório (o `.env` e a pasta `config/` não podem aparecer no `git status`).
 2. **Vercel:** em vercel.com/new, importe o repositório. A Vercel detecta o `Dockerfile.vercel` sozinha.
 3. **Variáveis de ambiente** (na tela de importação ou em Settings, Environment Variables):
-   `SPRING_PROFILES_ACTIVE=banco`, `DB_URL`, `DB_USER`, `DB_PASSWORD`, `JWT_SEGREDO`, `ADMIN_SENHA` e, se quiser, `ADMIN_EMAIL`. Use os mesmos valores do `.env`. Não defina `PORT`: a Vercel define.
-4. **Deploy** e teste: entre como administrador, registre uma ocorrência como cliente e resolva como administrador.
+   `SPRING_PROFILES_ACTIVE=banco`, `DB_URL`, `DB_USER`, `DB_PASSWORD`, `JWT_SEGREDO`, `ADMIN_EMAIL` e `ADMIN_SENHA`. Use os mesmos valores do `.env`. Não defina `PORT`: a Vercel define.
+4. **Deploy** e teste: entre com o administrador provisionado por `ADMIN_EMAIL` e `ADMIN_SENHA`; crie uma conta de cliente pela interface para registrar ocorrências.
 
 Pontos de atenção:
 
@@ -141,4 +143,3 @@ Pontos de atenção:
 
 - Sem recuperação de senha, confirmação de e-mail ou limite de tentativas de login.
 - Sem foto como evidência, confirmação comunitária ou notificações.
-- O console do H2 (`/h2-console`) é só para demonstração local; desligue-o (`spring.h2.console.enabled=false`) fora disso.

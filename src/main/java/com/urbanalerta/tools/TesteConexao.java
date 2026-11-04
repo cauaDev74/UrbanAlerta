@@ -64,6 +64,7 @@ public class TesteConexao {
         String usuario = valor(padroes, env, "spring.datasource.username");
         String senha = valor(padroes, env, "spring.datasource.password");
         String jwt = valor(padroes, env, "urbanalerta.seguranca.jwt-segredo");
+        String adminEmail = valor(padroes, env, "urbanalerta.admin.email");
         String adminSenha = valor(padroes, env, "urbanalerta.admin.senha");
 
         conferirDbUrl(dbUrl, url);
@@ -72,7 +73,7 @@ public class TesteConexao {
         conferirUsuario(usuario, uri);
         conferirSenha(senha);
         conferirJwt(jwt);
-        conferirAdmin(adminSenha);
+        conferirAdmin(adminEmail, adminSenha);
 
         if (erros > 0 || uri == null) {
             saida.println();
@@ -189,7 +190,7 @@ public class TesteConexao {
             ok("Perfil Spring ativo: banco.");
         } else {
             aviso("Perfil Spring banco não está ativo (perfil detectado: "
-                    + (perfil.isBlank() ? "default/H2" : perfil) + ").");
+                    + (perfil.isBlank() ? "default/PostgreSQL" : perfil) + ").");
         }
     }
 
@@ -270,9 +271,14 @@ public class TesteConexao {
         }
     }
 
-    private void conferirAdmin(String adminSenha) {
+    private void conferirAdmin(String adminEmail, String adminSenha) {
+        if (adminEmail.isBlank() || adminEmail.contains("<") || adminEmail.contains(">")) {
+            aviso("ADMIN_EMAIL está vazia ou ainda contém um marcador de exemplo: nenhum administrador será criado.");
+        }
         if (adminSenha.isBlank()) {
             aviso("ADMIN_SENHA está vazia: nenhum administrador será criado (você não conseguiria resolver ocorrências).");
+        } else if (adminSenha.startsWith("<") || adminSenha.endsWith(">")) {
+            aviso("ADMIN_SENHA ainda contém um marcador de exemplo.");
         } else {
             ok("Senha do administrador definida.");
         }

@@ -56,13 +56,6 @@
       <button type="submit" class="primario" id="btn-cadastro">Criar conta</button>
     </form>
 
-    <div id="demo" class="demo" hidden>
-      <p>Contas de demonstração:</p>
-      <div class="demo-botoes">
-        <button type="button" data-demo="cliente">Entrar como cliente</button>
-        <button type="button" data-demo="admin">Entrar como admin</button>
-      </div>
-    </div>
   </section>
 </main>
 
@@ -93,7 +86,10 @@
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Minhas</span>
     </button>
     <button type="button" data-tela="fila" data-perfil="ADMIN">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg><span>Gestão</span>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg><span>Fila</span>
+    </button>
+    <button type="button" data-tela="dashboard" data-perfil="ADMIN">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg><span>Gestão</span>
     </button>
   </nav>
 
@@ -129,10 +125,17 @@
         <div id="minhas" class="conteudo"></div>
       </section>
 
-      <!-- Admin: gestão -->
-      <section id="tela-fila" class="tela" data-perfil="ADMIN" aria-label="Gestão de ocorrências">
-        <div class="barra"><h2>Gestão de ocorrências</h2></div>
+      <!-- Admin: fila de ocorrências -->
+      <section id="tela-fila" class="tela" data-perfil="ADMIN" aria-label="Fila de ocorrências">
+        <div class="barra"><h2>Fila de ocorrências</h2></div>
         <div id="fila" class="conteudo"></div>
+      </section>
+
+      <section id="tela-dashboard" class="tela" data-perfil="ADMIN" aria-label="Dashboard de ocorrências">
+        <div class="barra">
+          <h2>Dashboard de ocorrências</h2>
+        </div>
+        <div id="dashboard" class="conteudo dashboard"></div>
       </section>
 
       <!-- Detalhe (os dois perfis) -->
